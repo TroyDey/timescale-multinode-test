@@ -119,14 +119,18 @@ print_info "Restart dn3 (tsdb-data3)..."
 start_node tsdb-data3 5436
 print_success "SELECT should succeed once more now that the data node is back online."
 get_data
+print_success "INSERT should succeed now that the data node is back online."
+insert_row
 print_info "Shutting down dn3 (tsdb-data3)..."
 shutdown_node tsdb-data3
 print_info "Forcefully detach and delete dn3 (tsdb-data3)..."
 detach_node dn3
 print_info "Replication status should show 2 nodes and all chunks are replicated on both nodes."
 get_replication_status
-print_success "SELECT should be successful now that the failed node has been removed."
+print_success "SELECT should be successful this time since the failed node has been removed."
 get_data
+print_success "INSERT should be successful this time since the failed node has been removed."
+insert_row
 print_info "Restart dn3 (tsdb-data3)..."
 start_node tsdb-data3 5436
 print_info "Reattach and readd dn3 (tsdb-data3)..."
@@ -135,10 +139,14 @@ print_info "Replication satus should show 3 nodes and all chunks replicated to d
 get_replication_status
 print_success "SELECT should be successful since all data nodes are up."
 get_data
+print_success "INSERT should be successful since all data nodes are up."
+insert_row
 print_info "Shutting down dn3 (tsdb-data3)..."
 shutdown_node tsdb-data3
 print_success "SELECT should be successful since there are no chunks replicated to dn3 (tsdb-data3)."
 get_data
+print_success "INSERT should be successful since there are no chunks replicated to dn3 (tsdb-data3)."
+insert_row
 print_info "Restart dn3 (tsdb-data3)..."
 start_node tsdb-data3 5436
 print_info "Rereplicate all chunks to dn3 (tsdb-data3)..."
@@ -147,6 +155,8 @@ print_info "Replication status should show 3 nodes and all chunks replicated to 
 get_replication_status
 print_success "SELECT should be successful since all chunks are replicated to all nodes and all nodes are up."
 get_data
+print_success "INSERT should be successful since all chunks are replicated to all nodes and all nodes are up."
+insert_row
 print_info "Shutting down dn3 (tsdb-data3)..."
 shutdown_node tsdb-data3
 print_fail "SELECT should fail since dn3 is shutdown and contains a replica of each chunk."

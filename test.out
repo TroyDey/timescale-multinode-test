@@ -6,28 +6,28 @@ Bring up environment...
 [0m
 Network timescale-multinode-test_default  Creating
 Network timescale-multinode-test_default  Created
+Volume "timescale-multinode-test_tsdb-data2-vol"  Creating
+Volume "timescale-multinode-test_tsdb-data2-vol"  Created
 Volume "timescale-multinode-test_tsdb-data3-vol"  Creating
 Volume "timescale-multinode-test_tsdb-data3-vol"  Created
 Volume "timescale-multinode-test_tsdb-access-vol"  Creating
 Volume "timescale-multinode-test_tsdb-access-vol"  Created
 Volume "timescale-multinode-test_tsdb-data1-vol"  Creating
 Volume "timescale-multinode-test_tsdb-data1-vol"  Created
-Volume "timescale-multinode-test_tsdb-data2-vol"  Creating
-Volume "timescale-multinode-test_tsdb-data2-vol"  Created
-Container tsdb-data3  Creating
 Container tsdb-data1  Creating
 Container tsdb-data2  Creating
-Container tsdb-data2  Created
+Container tsdb-data3  Creating
 Container tsdb-data1  Created
 Container tsdb-data3  Created
+Container tsdb-data2  Created
 Container tsdb-access  Creating
 Container tsdb-access  Created
 Container tsdb-data3  Starting
-Container tsdb-data2  Starting
 Container tsdb-data1  Starting
-Container tsdb-data3  Started
+Container tsdb-data2  Starting
 Container tsdb-data1  Started
 Container tsdb-data2  Started
+Container tsdb-data3  Started
 Container tsdb-access  Starting
 Container tsdb-access  Started
 [0;36m
@@ -109,6 +109,10 @@ SELECT should succeed once more now that the data node is back online.
  2021-08-17 00:00:09+00 | 4.14 |      1
 (10 rows)
 
+[0;32m
+INSERT should succeed now that the data node is back online.
+[0m
+INSERT 0 1
 [0;36m
 Shutting down dn3 (tsdb-data3)...
 [0m
@@ -144,7 +148,7 @@ Replication status should show 2 nodes and all chunks are replicated on both nod
 (3 rows)
 
 [0;32m
-SELECT should be successful now that the failed node has been removed.
+SELECT should be successful this time since the failed node has been removed.
 [0m
            ts           | val  | dev_id 
 ------------------------+------+--------
@@ -160,6 +164,10 @@ SELECT should be successful now that the failed node has been removed.
  2021-08-17 00:00:09+00 | 4.14 |      1
 (10 rows)
 
+[0;32m
+INSERT should be successful this time since the failed node has been removed.
+[0m
+INSERT 0 1
 [0;36m
 Restart dn3 (tsdb-data3)...
 [0m
@@ -209,6 +217,10 @@ SELECT should be successful since all data nodes are up.
  2021-08-17 00:00:09+00 | 4.14 |      1
 (10 rows)
 
+[0;32m
+INSERT should be successful since all data nodes are up.
+[0m
+INSERT 0 1
 [0;36m
 Shutting down dn3 (tsdb-data3)...
 [0m
@@ -231,6 +243,10 @@ SELECT should be successful since there are no chunks replicated to dn3 (tsdb-da
  2021-08-17 00:00:09+00 | 4.14 |      1
 (10 rows)
 
+[0;32m
+INSERT should be successful since there are no chunks replicated to dn3 (tsdb-data3).
+[0m
+INSERT 0 1
 [0;36m
 Restart dn3 (tsdb-data3)...
 [0m
@@ -270,6 +286,10 @@ SELECT should be successful since all chunks are replicated to all nodes and all
  2021-08-17 00:00:09+00 | 4.14 |      1
 (10 rows)
 
+[0;32m
+INSERT should be successful since all chunks are replicated to all nodes and all nodes are up.
+[0m
+INSERT 0 1
 [0;36m
 Shutting down dn3 (tsdb-data3)...
 [0m
@@ -335,11 +355,11 @@ Container tsdb-access  Stopped
 Container tsdb-access  Removing
 Container tsdb-access  Removed
 Container tsdb-data3  Stopping
-Container tsdb-data1  Stopping
+Container tsdb-data2  Stopping
+Container tsdb-data2  Stopping
 Container tsdb-data3  Stopping
-Container tsdb-data2  Stopping
 Container tsdb-data1  Stopping
-Container tsdb-data2  Stopping
+Container tsdb-data1  Stopping
 Container tsdb-data3  Stopped
 Container tsdb-data3  Removing
 Container tsdb-data3  Removed
@@ -349,15 +369,15 @@ Container tsdb-data2  Removed
 Container tsdb-data1  Stopped
 Container tsdb-data1  Removing
 Container tsdb-data1  Removed
-Volume timescale-multinode-test_tsdb-data1-vol  Removing
 Volume timescale-multinode-test_tsdb-access-vol  Removing
+Volume timescale-multinode-test_tsdb-data2-vol  Removing
 Volume timescale-multinode-test_tsdb-data3-vol  Removing
 Network timescale-multinode-test_default  Removing
-Volume timescale-multinode-test_tsdb-data2-vol  Removing
-Volume timescale-multinode-test_tsdb-data1-vol  Removed
+Volume timescale-multinode-test_tsdb-data1-vol  Removing
+Volume timescale-multinode-test_tsdb-data2-vol  Removed
 Volume timescale-multinode-test_tsdb-access-vol  Removed
 Volume timescale-multinode-test_tsdb-data3-vol  Removed
-Volume timescale-multinode-test_tsdb-data2-vol  Removed
+Volume timescale-multinode-test_tsdb-data1-vol  Removed
 Network timescale-multinode-test_default  Removed
 [0;36m
 END TEST
