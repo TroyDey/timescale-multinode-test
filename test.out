@@ -1,0 +1,364 @@
+[0;36m
+BEGIN TEST
+[0m
+[0;36m
+Bring up environment...
+[0m
+Network timescale-multinode-test_default  Creating
+Network timescale-multinode-test_default  Created
+Volume "timescale-multinode-test_tsdb-data3-vol"  Creating
+Volume "timescale-multinode-test_tsdb-data3-vol"  Created
+Volume "timescale-multinode-test_tsdb-access-vol"  Creating
+Volume "timescale-multinode-test_tsdb-access-vol"  Created
+Volume "timescale-multinode-test_tsdb-data1-vol"  Creating
+Volume "timescale-multinode-test_tsdb-data1-vol"  Created
+Volume "timescale-multinode-test_tsdb-data2-vol"  Creating
+Volume "timescale-multinode-test_tsdb-data2-vol"  Created
+Container tsdb-data3  Creating
+Container tsdb-data1  Creating
+Container tsdb-data2  Creating
+Container tsdb-data2  Created
+Container tsdb-data1  Created
+Container tsdb-data3  Created
+Container tsdb-access  Creating
+Container tsdb-access  Created
+Container tsdb-data3  Starting
+Container tsdb-data2  Starting
+Container tsdb-data1  Starting
+Container tsdb-data3  Started
+Container tsdb-data1  Started
+Container tsdb-data2  Started
+Container tsdb-access  Starting
+Container tsdb-access  Started
+[0;36m
+Wait for access node to be ready...
+[0m
+[0;36m
+Setting up database...
+[0m
+CREATE TABLE
+ create_distributed_hypertable 
+-------------------------------
+ (1,public,metric,t)
+(1 row)
+
+INSERT 0 180000
+
+[0;36m
+Replication factor was set to 3 so all chunks should be on all data nodes.
+[0m
+ hypertable_schema | hypertable_name |     chunk_schema      |      chunk_name       | desired_num_replicas | num_replicas | replica_nodes | non_replica_nodes 
+-------------------+-----------------+-----------------------+-----------------------+----------------------+--------------+---------------+-------------------
+ public            | metric          | _timescaledb_internal | _dist_hyper_1_1_chunk |                    3 |            3 | {dn1,dn2,dn3} | 
+ public            | metric          | _timescaledb_internal | _dist_hyper_1_2_chunk |                    3 |            3 | {dn2,dn3,dn1} | 
+ public            | metric          | _timescaledb_internal | _dist_hyper_1_3_chunk |                    3 |            3 | {dn3,dn1,dn2} | 
+(3 rows)
+
+[0;32m
+SELECT should be succesful.
+[0m
+           ts           | val  | dev_id 
+------------------------+------+--------
+ 2021-08-17 00:00:00+00 | 4.14 |      1
+ 2021-08-17 00:00:01+00 | 4.14 |      1
+ 2021-08-17 00:00:02+00 | 4.14 |      1
+ 2021-08-17 00:00:03+00 | 4.14 |      1
+ 2021-08-17 00:00:04+00 | 4.14 |      1
+ 2021-08-17 00:00:05+00 | 4.14 |      1
+ 2021-08-17 00:00:06+00 | 4.14 |      1
+ 2021-08-17 00:00:07+00 | 4.14 |      1
+ 2021-08-17 00:00:08+00 | 4.14 |      1
+ 2021-08-17 00:00:09+00 | 4.14 |      1
+(10 rows)
+
+[0;36m
+Shutting down dn3 (tsdb-data3)...
+[0m
+Container tsdb-data3  Stopping
+Container tsdb-data3  Stopped
+[0;31m
+SELECT fails due to dn3 being down, even with the data available on other data nodes.
+[0m
+ERROR:  could not connect to "dn3"
+DETAIL:  could not translate host name "tsdb-data3" to address: Name does not resolve
+[0;32m
+INSERT fails due to dn3 being down as expected.
+[0m
+ERROR:  could not connect to "dn3"
+DETAIL:  could not translate host name "tsdb-data3" to address: Name does not resolve
+[0;36m
+Restart dn3 (tsdb-data3)...
+[0m
+Container tsdb-data3  Starting
+Container tsdb-data3  Started
+Waiting for PG to be ready...
+[0;32m
+SELECT should succeed once more now that the data node is back online.
+[0m
+           ts           | val  | dev_id 
+------------------------+------+--------
+ 2021-08-17 00:00:00+00 | 4.14 |      1
+ 2021-08-17 00:00:01+00 | 4.14 |      1
+ 2021-08-17 00:00:02+00 | 4.14 |      1
+ 2021-08-17 00:00:03+00 | 4.14 |      1
+ 2021-08-17 00:00:04+00 | 4.14 |      1
+ 2021-08-17 00:00:05+00 | 4.14 |      1
+ 2021-08-17 00:00:06+00 | 4.14 |      1
+ 2021-08-17 00:00:07+00 | 4.14 |      1
+ 2021-08-17 00:00:08+00 | 4.14 |      1
+ 2021-08-17 00:00:09+00 | 4.14 |      1
+(10 rows)
+
+[0;36m
+Shutting down dn3 (tsdb-data3)...
+[0m
+Container tsdb-data3  Stopping
+Container tsdb-data3  Stopped
+[0;36m
+Forcefully detach and delete dn3 (tsdb-data3)...
+[0m
+WARNING:  distributed hypertable "metric" is under-replicated
+DETAIL:  Some chunks no longer meet the replication target after detaching data node "dn3".
+WARNING:  insufficient number of data nodes for distributed hypertable "metric"
+DETAIL:  Reducing the number of available data nodes on distributed hypertable "metric" prevents full replication of new chunks.
+NOTICE:  the number of partitions in dimension "dev_id" was decreased to 2
+DETAIL:  To make efficient use of all attached data nodes, the number of space partitions was set to match the number of data nodes.
+ detach_data_node 
+------------------
+                1
+(1 row)
+
+ delete_data_node 
+------------------
+ t
+(1 row)
+
+[0;36m
+Replication status should show 2 nodes and all chunks are replicated on both nodes.
+[0m
+ hypertable_schema | hypertable_name |     chunk_schema      |      chunk_name       | desired_num_replicas | num_replicas | replica_nodes | non_replica_nodes 
+-------------------+-----------------+-----------------------+-----------------------+----------------------+--------------+---------------+-------------------
+ public            | metric          | _timescaledb_internal | _dist_hyper_1_1_chunk |                    3 |            2 | {dn1,dn2}     | 
+ public            | metric          | _timescaledb_internal | _dist_hyper_1_2_chunk |                    3 |            2 | {dn2,dn1}     | 
+ public            | metric          | _timescaledb_internal | _dist_hyper_1_3_chunk |                    3 |            2 | {dn1,dn2}     | 
+(3 rows)
+
+[0;32m
+SELECT should be successful now that the failed node has been removed.
+[0m
+           ts           | val  | dev_id 
+------------------------+------+--------
+ 2021-08-17 00:00:00+00 | 4.14 |      1
+ 2021-08-17 00:00:01+00 | 4.14 |      1
+ 2021-08-17 00:00:02+00 | 4.14 |      1
+ 2021-08-17 00:00:03+00 | 4.14 |      1
+ 2021-08-17 00:00:04+00 | 4.14 |      1
+ 2021-08-17 00:00:05+00 | 4.14 |      1
+ 2021-08-17 00:00:06+00 | 4.14 |      1
+ 2021-08-17 00:00:07+00 | 4.14 |      1
+ 2021-08-17 00:00:08+00 | 4.14 |      1
+ 2021-08-17 00:00:09+00 | 4.14 |      1
+(10 rows)
+
+[0;36m
+Restart dn3 (tsdb-data3)...
+[0m
+Container tsdb-data3  Starting
+Container tsdb-data3  Started
+Waiting for PG to be ready...
+[0;36m
+Reattach and readd dn3 (tsdb-data3)...
+[0m
+DROP DATABASE
+           add_data_node            
+------------------------------------
+ (dn3,tsdb-data3,5432,testdb,t,t,t)
+(1 row)
+
+NOTICE:  the number of partitions in dimension "dev_id" was increased to 3
+DETAIL:  To make use of all attached data nodes, a distributed hypertable needs at least as many partitions in the first closed (space) dimension as there are attached data nodes.
+ attach_data_node 
+------------------
+ (1,1,dn3)
+(1 row)
+
+[0;36m
+Replication satus should show 3 nodes and all chunks replicated to dn1 (tsdb-data1) and dn2 (tsdb-data2) but not dn3 (tsdb-data3).
+[0m
+ hypertable_schema | hypertable_name |     chunk_schema      |      chunk_name       | desired_num_replicas | num_replicas | replica_nodes | non_replica_nodes 
+-------------------+-----------------+-----------------------+-----------------------+----------------------+--------------+---------------+-------------------
+ public            | metric          | _timescaledb_internal | _dist_hyper_1_1_chunk |                    3 |            2 | {dn1,dn2}     | {dn3}
+ public            | metric          | _timescaledb_internal | _dist_hyper_1_2_chunk |                    3 |            2 | {dn2,dn1}     | {dn3}
+ public            | metric          | _timescaledb_internal | _dist_hyper_1_3_chunk |                    3 |            2 | {dn1,dn2}     | {dn3}
+(3 rows)
+
+[0;32m
+SELECT should be successful since all data nodes are up.
+[0m
+           ts           | val  | dev_id 
+------------------------+------+--------
+ 2021-08-17 00:00:00+00 | 4.14 |      1
+ 2021-08-17 00:00:01+00 | 4.14 |      1
+ 2021-08-17 00:00:02+00 | 4.14 |      1
+ 2021-08-17 00:00:03+00 | 4.14 |      1
+ 2021-08-17 00:00:04+00 | 4.14 |      1
+ 2021-08-17 00:00:05+00 | 4.14 |      1
+ 2021-08-17 00:00:06+00 | 4.14 |      1
+ 2021-08-17 00:00:07+00 | 4.14 |      1
+ 2021-08-17 00:00:08+00 | 4.14 |      1
+ 2021-08-17 00:00:09+00 | 4.14 |      1
+(10 rows)
+
+[0;36m
+Shutting down dn3 (tsdb-data3)...
+[0m
+Container tsdb-data3  Stopping
+Container tsdb-data3  Stopped
+[0;32m
+SELECT should be successful since there are no chunks replicated to dn3 (tsdb-data3).
+[0m
+           ts           | val  | dev_id 
+------------------------+------+--------
+ 2021-08-17 00:00:00+00 | 4.14 |      1
+ 2021-08-17 00:00:01+00 | 4.14 |      1
+ 2021-08-17 00:00:02+00 | 4.14 |      1
+ 2021-08-17 00:00:03+00 | 4.14 |      1
+ 2021-08-17 00:00:04+00 | 4.14 |      1
+ 2021-08-17 00:00:05+00 | 4.14 |      1
+ 2021-08-17 00:00:06+00 | 4.14 |      1
+ 2021-08-17 00:00:07+00 | 4.14 |      1
+ 2021-08-17 00:00:08+00 | 4.14 |      1
+ 2021-08-17 00:00:09+00 | 4.14 |      1
+(10 rows)
+
+[0;36m
+Restart dn3 (tsdb-data3)...
+[0m
+Container tsdb-data3  Starting
+Container tsdb-data3  Started
+Waiting for PG to be ready...
+[0;36m
+Rereplicate all chunks to dn3 (tsdb-data3)...
+[0m
+CALL
+CALL
+CALL
+[0;36m
+Replication status should show 3 nodes and all chunks replicated to all 3 nodes.
+[0m
+ hypertable_schema | hypertable_name |     chunk_schema      |      chunk_name       | desired_num_replicas | num_replicas | replica_nodes | non_replica_nodes 
+-------------------+-----------------+-----------------------+-----------------------+----------------------+--------------+---------------+-------------------
+ public            | metric          | _timescaledb_internal | _dist_hyper_1_1_chunk |                    3 |            3 | {dn3,dn1,dn2} | 
+ public            | metric          | _timescaledb_internal | _dist_hyper_1_2_chunk |                    3 |            3 | {dn3,dn1,dn2} | 
+ public            | metric          | _timescaledb_internal | _dist_hyper_1_3_chunk |                    3 |            3 | {dn3,dn1,dn2} | 
+(3 rows)
+
+[0;32m
+SELECT should be successful since all chunks are replicated to all nodes and all nodes are up.
+[0m
+           ts           | val  | dev_id 
+------------------------+------+--------
+ 2021-08-17 00:00:00+00 | 4.14 |      1
+ 2021-08-17 00:00:01+00 | 4.14 |      1
+ 2021-08-17 00:00:02+00 | 4.14 |      1
+ 2021-08-17 00:00:03+00 | 4.14 |      1
+ 2021-08-17 00:00:04+00 | 4.14 |      1
+ 2021-08-17 00:00:05+00 | 4.14 |      1
+ 2021-08-17 00:00:06+00 | 4.14 |      1
+ 2021-08-17 00:00:07+00 | 4.14 |      1
+ 2021-08-17 00:00:08+00 | 4.14 |      1
+ 2021-08-17 00:00:09+00 | 4.14 |      1
+(10 rows)
+
+[0;36m
+Shutting down dn3 (tsdb-data3)...
+[0m
+Container tsdb-data3  Stopping
+Container tsdb-data3  Stopped
+[0;31m
+SELECT should fail since dn3 is shutdown and contains a replica of each chunk.
+[0m
+           ts           | val  | dev_id 
+------------------------+------+--------
+ 2021-08-17 00:00:00+00 | 4.14 |      1
+ 2021-08-17 00:00:01+00 | 4.14 |      1
+ 2021-08-17 00:00:02+00 | 4.14 |      1
+ 2021-08-17 00:00:03+00 | 4.14 |      1
+ 2021-08-17 00:00:04+00 | 4.14 |      1
+ 2021-08-17 00:00:05+00 | 4.14 |      1
+ 2021-08-17 00:00:06+00 | 4.14 |      1
+ 2021-08-17 00:00:07+00 | 4.14 |      1
+ 2021-08-17 00:00:08+00 | 4.14 |      1
+ 2021-08-17 00:00:09+00 | 4.14 |      1
+(10 rows)
+
+[0;31m
+!!!DEFECT!!!
+EXPECTED: SELECT should have failed since dn3 is shutdown and it is attached to metric table and contains a replica of each chunk!
+ACTUAL: SELECT succeeds!
+!!!DEFECT!!!
+[0m
+[0;32m
+INSERT fails because dn3 is down as expected.
+[0m
+ERROR:  could not connect to "dn3"
+DETAIL:  could not translate host name "tsdb-data3" to address: Name does not resolve
+[0;36m
+Restart dn3 (tsdb-data3)...
+[0m
+Container tsdb-data3  Starting
+Container tsdb-data3  Started
+Waiting for PG to be ready...
+[0;32m
+SELECT should be successful since all chunks are replicated to all nodes and all nodes are up.
+[0m
+           ts           | val  | dev_id 
+------------------------+------+--------
+ 2021-08-17 00:00:00+00 | 4.14 |      1
+ 2021-08-17 00:00:01+00 | 4.14 |      1
+ 2021-08-17 00:00:02+00 | 4.14 |      1
+ 2021-08-17 00:00:03+00 | 4.14 |      1
+ 2021-08-17 00:00:04+00 | 4.14 |      1
+ 2021-08-17 00:00:05+00 | 4.14 |      1
+ 2021-08-17 00:00:06+00 | 4.14 |      1
+ 2021-08-17 00:00:07+00 | 4.14 |      1
+ 2021-08-17 00:00:08+00 | 4.14 |      1
+ 2021-08-17 00:00:09+00 | 4.14 |      1
+(10 rows)
+
+[0;36m
+Tear down environment...
+[0m
+Container tsdb-access  Stopping
+Container tsdb-access  Stopping
+Container tsdb-access  Stopped
+Container tsdb-access  Removing
+Container tsdb-access  Removed
+Container tsdb-data3  Stopping
+Container tsdb-data1  Stopping
+Container tsdb-data3  Stopping
+Container tsdb-data2  Stopping
+Container tsdb-data1  Stopping
+Container tsdb-data2  Stopping
+Container tsdb-data3  Stopped
+Container tsdb-data3  Removing
+Container tsdb-data3  Removed
+Container tsdb-data2  Stopped
+Container tsdb-data2  Removing
+Container tsdb-data2  Removed
+Container tsdb-data1  Stopped
+Container tsdb-data1  Removing
+Container tsdb-data1  Removed
+Volume timescale-multinode-test_tsdb-data1-vol  Removing
+Volume timescale-multinode-test_tsdb-access-vol  Removing
+Volume timescale-multinode-test_tsdb-data3-vol  Removing
+Network timescale-multinode-test_default  Removing
+Volume timescale-multinode-test_tsdb-data2-vol  Removing
+Volume timescale-multinode-test_tsdb-data1-vol  Removed
+Volume timescale-multinode-test_tsdb-access-vol  Removed
+Volume timescale-multinode-test_tsdb-data3-vol  Removed
+Volume timescale-multinode-test_tsdb-data2-vol  Removed
+Network timescale-multinode-test_default  Removed
+[0;36m
+END TEST
+[0m
