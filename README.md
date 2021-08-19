@@ -11,6 +11,8 @@ Demonstrates defect with TimeScaleDB's multi-node native replication in the face
 * 1 distributed hypertable with a replication factor of 3 and chunk_interval of 1 hour
 * Inserts 59:59 worth of data for 50 different dev_ids into the table
 
+The multi-node setup with docker was adapted from [Multi-Node-TimescaleDB](https://github.com/binakot/Multi-Node-TimescaleDB)
+
 ## Test Case
 
 * Check initial replication status and ability to select from the table
