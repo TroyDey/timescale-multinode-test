@@ -33,6 +33,10 @@ insert_row() {
   psql -U postgres -h localhost -p 5433 -d testdb -c "INSERT INTO metric (ts, val, dev_id) VALUES ('2021-08-17 00:00:00', 3.15, 51);"
 }
 
+get_primary_replica_node() {
+  psql -U postgres -h localhost -p 5433 -d testdb -c "SELECT chunk_schema, chunk_name, fs.srvname AS primary_replica_node from timescaledb_information.chunks c, pg_foreign_table ft, pg_foreign_server fs WHERE ft.ftserver=fs.oid AND format('%I.%I', c.chunk_schema, c.chunk_name)::regclass=ft.ftrelid;"
+}
+
 # Use docker-compose to stop the given container
 shutdown_node() {
   docker-compose stop $1
@@ -111,6 +115,7 @@ print_success "SELECT should be succesful."
 get_data
 print_info "Shutting down dn3 (tsdb-data3)..."
 shutdown_node tsdb-data3
+get_primary_replica_node
 print_fail "SELECT fails due to dn3 being down, even with the data available on other data nodes."
 get_data
 print_success "INSERT fails due to dn3 being down as expected."
@@ -159,14 +164,9 @@ print_success "INSERT should be successful since all chunks are replicated to al
 insert_row
 print_info "Shutting down dn3 (tsdb-data3)..."
 shutdown_node tsdb-data3
-print_fail "SELECT should fail since dn3 is shutdown and contains a replica of each chunk."
+get_primary_replica_node
+print_success "SELECT succeeds because dn3 (tsdb-data3) is not a primary for a chunk"
 get_data
-echo -e "${RED}"
-echo -e "!!!DEFECT!!!"
-echo -e "EXPECTED: SELECT should have failed since dn3 is shutdown and it is attached to metric table and contains a replica of each chunk!"
-echo -e "ACTUAL: SELECT succeeds!"
-echo -e "!!!DEFECT!!!"
-echo -e "${NC}"
 print_success "INSERT fails because dn3 is down as expected."
 insert_row
 print_info "Restart dn3 (tsdb-data3)..."
